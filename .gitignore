@@ -34,3 +34,7 @@ build/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# === AI assistant scaffolding (do not commit) ===
+CLAUDE.md
+**/CLAUDE.md
