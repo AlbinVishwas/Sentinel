@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AgencyLog } from "@/components/agency-log";
+import { Markdown } from "@/components/markdown";
 import type { AgencyEntry, AgentEvent } from "@/lib/types";
 
 type Status = "idle" | "working" | "done" | "aborted" | "error";
@@ -262,9 +263,7 @@ function AgentMessage({ turn }: { turn: Extract<Turn, { role: "agent" }> }) {
     <div className="flex flex-col">
       <AgencyLog entries={turn.agency} />
       {turn.text ? (
-        <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--color-text)]">
-          {turn.text}
-        </div>
+        <Markdown>{turn.text}</Markdown>
       ) : showWorking ? (
         <div className="font-mono text-[12.5px] text-[var(--color-muted)]">Working…</div>
       ) : null}

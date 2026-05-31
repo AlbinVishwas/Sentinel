@@ -48,6 +48,15 @@ body {
   border-radius: 4px;
 }
 
+/* Inside a fenced code block, neutralize the inline-code chip styling so the
+   <pre> container owns the background/padding (react-markdown nests <pre><code>). */
+.md-body pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
 /* Minimal, unobtrusive scrollbar that matches the neutral palette. */
 * {
   scrollbar-width: thin;
