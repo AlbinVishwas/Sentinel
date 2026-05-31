@@ -1,7 +1,7 @@
 # Project Sentinel — Execution Checklist
 
 > Living task tracker derived from [PROJECT_PLAN.md](PROJECT_PLAN.md) (the SSOT).
-> Check items off as they are completed. Last updated: May 31, 2026 (Phases 1–3 complete; guardrailed read-write GitLab agent working).
+> Check items off as they are completed. Last updated: June 1, 2026 (Phases 1–4 complete; streaming chat UI wired to the guardrailed agent).
 
 **Legend:** `[ ]` Not started · `[~]` In progress · `[x]` Done
 
@@ -14,7 +14,7 @@
 | 1 | Foundations, Scaffolding, and Auth | May 31 – June 1, 2026 | 8 / 8 ✅ |
 | 2 | Agent Architecture & MCP Bridge | June 2 – June 4, 2026 | 7 / 7 ✅ |
 | 3 | Writing Capabilities & Safety Guardrails | June 5 – June 6, 2026 | 7 / 7 ✅ |
-| 4 | UI Development & Thought Process Streaming | June 7, 2026 | 0 / 2 |
+| 4 | UI Development & Thought Process Streaming | June 7, 2026 | 4 / 4 ✅ |
 | 5 | Verification & Automated Validation | June 8, 2026 | 0 / 4 |
 | 6 | Production Deployment & Hackathon Submission | June 9 – June 10, 2026 | 0 / 5 |
 
@@ -61,10 +61,10 @@
 
 **Target Dates:** June 7, 2026
 
-- [ ] Build the Next.js chat interface.
-- [ ] Wire the frontend to the FastAPI backend (HTTP POST).
-- [ ] Implement streaming status updates from backend to UI.
-- [ ] Render intermediate agent actions / thoughts in real time.
+- [x] Build the Next.js chat interface. *(dark, monochrome, motion-free; `frontend/src/components/chat.tsx`)*
+- [x] Wire the frontend to the FastAPI backend (HTTP POST). *(same-origin proxy route `app/api/agent/stream/route.ts` → FastAPI; backend URL/token never reach the browser)*
+- [x] Implement streaming status updates from backend to UI. *(SSE: `stream_agent` + `POST /agent/stream`; verified end-to-end through the proxy)*
+- [x] Render intermediate agent actions / thoughts in real time. *(the agency log — `[MCP call] get_issue …` lines appended as events arrive)*
 
 ## Phase 5 — Verification & Automated Validation
 

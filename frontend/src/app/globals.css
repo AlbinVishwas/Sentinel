@@ -1,26 +1,63 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+  Sentinel design system — dark-only, monochrome, no motion.
+  Palette is a neutral zinc scale; color is reserved for MEANING only
+  (working / success / danger), all low-chroma. Chrome itself is colorless.
+  There are intentionally NO transitions or animations anywhere.
+*/
+
+@theme {
+  --color-bg: oklch(0.16 0.004 286);        /* near-black app background */
+  --color-surface: oklch(0.20 0.004 286);   /* panels, message bubbles */
+  --color-surface-2: oklch(0.24 0.004 286); /* hover / inset */
+  --color-border: oklch(0.27 0.004 286);    /* hairline separators */
+  --color-text: oklch(0.92 0.003 286);      /* primary text (not pure white) */
+  --color-muted: oklch(0.62 0.004 286);     /* secondary text, timestamps */
+  --color-faint: oklch(0.46 0.004 286);     /* tertiary / disabled */
+
+  /* Semantic accents — desaturated, used only to signal state. */
+  --color-accent: oklch(0.64 0.045 250);    /* agent working / focus */
+  --color-success: oklch(0.70 0.055 150);   /* MR opened */
+  --color-danger: oklch(0.66 0.07 25);      /* guardrail blocked / error */
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  /* Kill the default focus ring flash; we draw our own static ring. */
+  outline: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Static, non-animated focus indicator for keyboard users. */
+:focus-visible {
+  box-shadow: 0 0 0 1px var(--color-accent);
+  border-radius: 4px;
+}
+
+/* Minimal, unobtrusive scrollbar that matches the neutral palette. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 6px;
 }
