@@ -11,7 +11,7 @@
 
 | Phase | Title | Target Dates | Progress |
 | --- | --- | --- | --- |
-| 1 | Foundations, Scaffolding, and Auth | May 31 – June 1, 2026 | 0 / 4 |
+| 1 | Foundations, Scaffolding, and Auth | May 31 – June 1, 2026 | 8 / 8 ✅ |
 | 2 | Agent Architecture & MCP Bridge | June 2 – June 4, 2026 | 0 / 4 |
 | 3 | Writing Capabilities & Safety Guardrails | June 5 – June 6, 2026 | 0 / 3 |
 | 4 | UI Development & Thought Process Streaming | June 7, 2026 | 0 / 2 |
@@ -24,14 +24,14 @@
 
 **Target Dates:** May 31 – June 1, 2026
 
-- [ ] Initialize the root Git repository.
-- [ ] Add a standard `.gitignore` (include `.env`, `node_modules/`, `__pycache__/`, build artifacts).
-- [ ] Add the `LICENSE` file (MIT).
-- [ ] Initialize `README.md` with the project overview.
-- [ ] Scaffold the `/backend` directory (FastAPI project skeleton).
-- [ ] Scaffold the `/frontend` directory (Next.js App Router + Tailwind + TypeScript).
-- [ ] Create the local `.env` file (**DO NOT COMMIT**).
-- [ ] Confirm `.env` is ignored by Git.
+- [x] Initialize the root Git repository.
+- [x] Add a standard `.gitignore` (include `.env`, `node_modules/`, `__pycache__/`, build artifacts).
+- [x] Add the `LICENSE` file (MIT).
+- [x] Initialize `README.md` with the project overview.
+- [x] Scaffold the `/backend` directory (FastAPI project skeleton).
+- [x] Scaffold the `/frontend` directory (Next.js App Router + Tailwind + TypeScript).
+- [x] Create the local `.env` file (**DO NOT COMMIT**).
+- [x] Confirm `.env` is ignored by Git.
 
 ## Phase 2 — Agent Architecture & MCP Bridge
 
