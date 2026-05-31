@@ -129,14 +129,14 @@ export function Chat() {
 
       <footer className="border-t border-[var(--color-border)] bg-[var(--color-bg)]">
         <form onSubmit={onSubmit} className="mx-auto w-full max-w-3xl px-4 py-4">
-          <div className="flex items-end gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 focus-within:border-[var(--color-accent)]">
+          <div className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 focus-within:border-[var(--color-accent)]">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
               placeholder="Ask Sentinel to investigate or fix an issue…"
-              className="max-h-40 min-h-6 flex-1 resize-none bg-transparent text-[15px] text-[var(--color-text)] placeholder:text-[var(--color-faint)] focus:outline-none"
+              className="max-h-40 flex-1 resize-none self-center bg-transparent py-1 text-[15px] leading-6 text-[var(--color-text)] placeholder:text-[var(--color-faint)] focus:outline-none"
             />
             <button
               type="submit"
