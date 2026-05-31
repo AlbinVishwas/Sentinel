@@ -1,7 +1,7 @@
 # Project Sentinel — Execution Checklist
 
 > Living task tracker derived from [PROJECT_PLAN.md](PROJECT_PLAN.md) (the SSOT).
-> Check items off as they are completed. Last updated: May 31, 2026 (Phases 1 & 2 complete; read-only GitLab MCP bridge working).
+> Check items off as they are completed. Last updated: May 31, 2026 (Phases 1–3 complete; guardrailed read-write GitLab agent working).
 
 **Legend:** `[ ]` Not started · `[~]` In progress · `[x]` Done
 
@@ -13,7 +13,7 @@
 | --- | --- | --- | --- |
 | 1 | Foundations, Scaffolding, and Auth | May 31 – June 1, 2026 | 8 / 8 ✅ |
 | 2 | Agent Architecture & MCP Bridge | June 2 – June 4, 2026 | 7 / 7 ✅ |
-| 3 | Writing Capabilities & Safety Guardrails | June 5 – June 6, 2026 | 0 / 3 |
+| 3 | Writing Capabilities & Safety Guardrails | June 5 – June 6, 2026 | 7 / 7 ✅ |
 | 4 | UI Development & Thought Process Streaming | June 7, 2026 | 0 / 2 |
 | 5 | Verification & Automated Validation | June 8, 2026 | 0 / 4 |
 | 6 | Production Deployment & Hackathon Submission | June 9 – June 10, 2026 | 0 / 5 |
