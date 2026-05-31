@@ -1,0 +1,36 @@
+# === Secrets (NEVER COMMIT) ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+gcloud-key.json
+service-account*.json
+
+# === Python / backend ===
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# === Node / frontend ===
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# === Build artifacts ===
+dist/
+build/
+*.log
+
+# === OS / editor ===
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
