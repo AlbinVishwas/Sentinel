@@ -30,9 +30,10 @@ async def agent_info() -> dict[str, object]:
         "read_tools": READ_TOOLS,
         "write_tools": WRITE_TOOLS,
         "guardrails": [
-            "Risk 1: direct commits/pushes to main/master blocked (before_tool_callback)",
+            "Risk 1: direct commits/pushes to main/master/production blocked (before_tool_callback)",
+            "Risk 1: branch writes confined to the 'sentinel/' namespace",
             "Risk 1: tool allow-list exposes no delete/destructive tool",
             "Risk 2: max_llm_calls ceiling then abort message",
-            "Risk 3: untrusted issue/MR text wrapped in <UNTRUSTED_ISSUE_DATA> (after_tool_callback)",
+            "Risk 3: untrusted issue/MR text wrapped in <UNTRUSTED_REPOSITORY_DATA> (after_tool_callback)",
         ],
     }
