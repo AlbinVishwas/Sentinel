@@ -48,6 +48,12 @@ body {
   border-radius: 4px;
 }
 
+/* The composer textarea signals focus via its container's focus-within border,
+   so suppress the global ring on it — otherwise it shows a second inner line. */
+textarea:focus-visible {
+  box-shadow: none;
+}
+
 /* Inside a fenced code block, neutralize the inline-code chip styling so the
    <pre> container owns the background/padding (react-markdown nests <pre><code>). */
 .md-body pre code {
