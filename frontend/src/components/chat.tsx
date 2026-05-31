@@ -11,8 +11,8 @@ type Turn =
   | { role: "agent"; id: string; agency: AgencyEntry[]; text: string; status: Status };
 
 const SUGGESTIONS = [
-  "Check open issue #1 and identify the file responsible.",
-  "Fix the syntax error in utils/parser.py from issue #1.",
+  "Check open issue #1 and identify the file responsible. Do not modify anything.",
+  "Fix the syntax error described in issue #1 and open a Merge Request.",
 ];
 
 export function Chat() {
