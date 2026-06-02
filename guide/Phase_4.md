@@ -1,7 +1,7 @@
 # Phase 4 — UI Development & Thought-Process Streaming
 
 > **Target Dates:** June 7, 2026
-> Derived from [PROJECT_PLAN.md](../PROJECT_PLAN.md) (the SSOT). Tracks the Phase 4 items in [CHECKLIST.md](../CHECKLIST.md).
+> Derived from PROJECT_PLAN.md (the SSOT). Tracks the Phase 4 items in CHECKLIST.md.
 
 **Environment:** continues from Phase 3. Frontend = Next.js **16.2.6** (App Router, Turbopack) + React 19 + Tailwind v4 + TypeScript, in `frontend/`. Backend = the FastAPI app from Phase 3.
 

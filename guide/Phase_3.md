@@ -1,7 +1,7 @@
 # Phase 3 — Writing Capabilities & Safety Guardrails
 
 > **Target Dates:** June 5 – June 6, 2026
-> Derived from [PROJECT_PLAN.md](../PROJECT_PLAN.md) (the SSOT). Tracks the Phase 3 items in [CHECKLIST.md](../CHECKLIST.md).
+> Derived from PROJECT_PLAN.md (the SSOT). Tracks the Phase 3 items in CHECKLIST.md.
 
 **Environment:** continues from Phase 2 — `backend/.venv` (Python 3.12), `google-adk` 2.1.0 + `mcp`, Gemini 3.5 Flash on the Vertex `global` endpoint, GitLab MCP via `npx @zereight/mcp-gitlab`.
 

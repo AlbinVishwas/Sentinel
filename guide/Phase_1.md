@@ -1,7 +1,7 @@
 # Phase 1 — Foundations, Scaffolding, and Auth
 
 > **Target Dates:** May 31 – June 1, 2026
-> Derived from [PROJECT_PLAN.md](../PROJECT_PLAN.md) (the SSOT). Tracks the 8 Phase 1 items in [CHECKLIST.md](../CHECKLIST.md).
+> Derived from PROJECT_PLAN.md (the SSOT). Tracks the 8 Phase 1 items in CHECKLIST.md.
 
 **Environment confirmed on this machine:** git 2.53 · Node v24.14 / npm 11.11 · Python 3.12 (use `python3.12` — the default `python3` is an old 3.9.6) · gh 2.91. `gcloud` is not installed, but it is only needed in Phase 6.
 

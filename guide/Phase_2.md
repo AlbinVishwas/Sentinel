@@ -1,7 +1,7 @@
 # Phase 2 — Agent Architecture & MCP Bridge
 
 > **Target Dates:** June 2 – June 4, 2026
-> Derived from [PROJECT_PLAN.md](../PROJECT_PLAN.md) (the SSOT). Tracks the Phase 2 items in [CHECKLIST.md](../CHECKLIST.md).
+> Derived from PROJECT_PLAN.md (the SSOT). Tracks the Phase 2 items in CHECKLIST.md.
 
 **Environment confirmed on this machine:** Python 3.12 venv at `backend/.venv` · Node v24.14 / npx 11.11 (≥18, required by the MCP server) · `gcloud` configured with project `sentinel-sre-nexol`, Vertex AI enabled, and Application Default Credentials (ADC) working · `google-adk` 2.1.0. **Docker is not needed** — the GitLab MCP server runs through `npx` over stdio.
 
