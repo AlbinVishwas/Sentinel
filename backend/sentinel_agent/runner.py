@@ -20,9 +20,24 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 from .agent import MAX_ITERATIONS, root_agent
+from .gitlab_health import AUTH_ERROR_MARKERS
 
 APP_NAME = "sentinel"
 ABORT_MESSAGE = "Task aborted: Maximum reasoning steps reached."
+AUTH_ERROR_MESSAGE = (
+    "GitLab authentication failed: the access token is missing, invalid, or expired. "
+    "Check GITLAB_PERSONAL_ACCESS_TOKEN."
+)
+
+
+def _is_auth_error(exc: BaseException) -> bool:
+    """True if an exception looks like a GitLab 401/auth failure.
+
+    MCP tool failures bubble up as opaque exceptions; we classify them by string so
+    a bad token surfaces as a clear auth error instead of a generic 'Agent error'.
+    """
+    text = f"{type(exc).__name__} {exc}".lower()
+    return any(marker in text for marker in AUTH_ERROR_MARKERS)
 
 
 def _new_runner() -> Runner:
@@ -80,7 +95,10 @@ async def stream_agent(
     except LlmCallsLimitExceededError:
         yield {"type": "aborted", "message": ABORT_MESSAGE}
     except Exception as exc:  # noqa: BLE001 - surface a safe message, never crash the stream
-        yield {"type": "error", "message": f"Agent error: {type(exc).__name__}"}
+        if _is_auth_error(exc):
+            yield {"type": "error", "code": "gitlab_auth_failed", "message": AUTH_ERROR_MESSAGE}
+        else:
+            yield {"type": "error", "message": f"Agent error: {type(exc).__name__}"}
 
 
 async def run_agent(

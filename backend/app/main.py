@@ -7,7 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from starlette.responses import StreamingResponse
 
+import asyncio
+
 from sentinel_agent.agent import MAX_ITERATIONS, READ_TOOLS, WRITE_TOOLS, root_agent
+from sentinel_agent.gitlab_health import check_gitlab_auth
 from sentinel_agent.runner import run_agent, stream_agent
 
 app = FastAPI(
@@ -36,6 +39,16 @@ class AgentRequest(BaseModel):
 async def health() -> dict[str, str]:
     """Liveness probe used by Cloud Run and local smoke tests."""
     return {"status": "ok", "service": "sentinel-backend"}
+
+
+@app.get("/health/gitlab")
+async def health_gitlab() -> dict[str, object]:
+    """Preflight the GitLab credential (Phase 5 — Secret Manager check).
+
+    AI-free: pings `GET /user` with the configured PAT so a missing/expired token
+    is caught as a clear 401 here instead of failing opaquely mid-agent-run.
+    """
+    return await check_gitlab_auth()
 
 
 @app.get("/agent/info")
@@ -79,6 +92,45 @@ async def agent_stream(req: AgentRequest) -> StreamingResponse:
     async def event_source() -> AsyncIterator[bytes]:
         async for event in stream_agent(req.prompt, session_id=req.session_id):
             yield f"data: {json.dumps(event)}\n\n".encode()
+        yield b"data: {\"type\": \"done\"}\n\n"
+
+    return StreamingResponse(
+        event_source(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# Canned multi-step agent run (no Gemini, no GitLab). Lets the frontend streaming
+# UI be exercised deterministically — every event shape the real stream emits, on a
+# fixed cadence — to confirm intermediate "thought process" steps render without
+# flicker or timeout. Same SSE framing as /agent/stream.
+_MOCK_EVENTS: list[dict[str, object]] = [
+    {"type": "reasoning", "text": "Reading issue #1 to understand the reported bug."},
+    {"type": "tool_call", "name": "get_issue", "args": {"project_id": "demo/repo", "issue_iid": 1}},
+    {"type": "tool_result", "name": "get_issue"},
+    {"type": "reasoning", "text": "Issue points at utils/parser.py. Fetching the file."},
+    {"type": "tool_call", "name": "get_file_contents", "args": {"file_path": "utils/parser.py"}},
+    {"type": "tool_result", "name": "get_file_contents"},
+    {"type": "reasoning", "text": "Found the off-by-one. Creating a fix branch."},
+    {"type": "tool_call", "name": "create_branch", "args": {"branch": "sentinel/fix-issue-1"}},
+    {"type": "tool_result", "name": "create_branch"},
+    {"type": "tool_call", "name": "create_or_update_file", "args": {"branch": "sentinel/fix-issue-1"}},
+    {"type": "tool_result", "name": "create_or_update_file"},
+    {"type": "tool_call", "name": "create_merge_request", "args": {"source_branch": "sentinel/fix-issue-1"}},
+    {"type": "tool_result", "name": "create_merge_request"},
+    {"type": "final", "text": "Fixed the off-by-one in `utils/parser.py` and opened MR !42 for review."},
+]
+
+
+@app.post("/agent/stream/mock")
+async def agent_stream_mock(req: AgentRequest) -> StreamingResponse:
+    """Replay a fixed multi-step SSE sequence (no model/network) for UI testing."""
+
+    async def event_source() -> AsyncIterator[bytes]:
+        for event in _MOCK_EVENTS:
+            yield f"data: {json.dumps(event)}\n\n".encode()
+            await asyncio.sleep(0.4)  # realistic streaming cadence
         yield b"data: {\"type\": \"done\"}\n\n"
 
     return StreamingResponse(
