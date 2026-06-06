@@ -10,7 +10,8 @@ from PROJECT_PLAN.md directly into the agent:
     namespace, plus a tool allow-list that never exposes any delete/destructive tool.
   * Risk 2 (infinite loops): enforced in runner.py via RunConfig(max_llm_calls).
   * Risk 3 (prompt injection): an `after_tool_callback` that wraps user-authored
-    GitLab text (issues / MR descriptions) in <UNTRUSTED_REPOSITORY_DATA> delimiters.
+    GitLab text (issues, discussions, and MR descriptions) in
+    <UNTRUSTED_REPOSITORY_DATA> delimiters.
 
 All tool names and argument schemas below are confirmed against the live
 @zereight/mcp-gitlab server (see scripts/list_tools.py / test_guardrails.py).
@@ -47,7 +48,7 @@ GITLAB_DEFAULT_PROJECT = os.environ.get("GITLAB_DEFAULT_PROJECT", "").strip()
 # Pure-read tools (Phase 2). The agent never sees anything outside the allow-list.
 READ_TOOLS = [
     # issues
-    "get_issue", "list_issues", "my_issues",
+    "get_issue", "list_issues", "my_issues", "list_issue_discussions",
     # merge requests
     "get_merge_request", "list_merge_requests", "get_merge_request_diffs",
     # code / repository
@@ -87,7 +88,7 @@ _DIRECT_BRANCH_WRITE_TOOLS = {"create_or_update_file", "push_files", "create_bra
 
 # Tool outputs that contain user-authored, untrusted natural-language text.
 _UNTRUSTED_OUTPUT_TOOLS = {
-    "get_issue", "list_issues", "my_issues",
+    "get_issue", "list_issues", "my_issues", "list_issue_discussions",
     "get_merge_request", "list_merge_requests",
 }
 

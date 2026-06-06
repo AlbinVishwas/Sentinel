@@ -1,11 +1,14 @@
 """Agentic Eval 2 — Context Overload (LIVE: uses Gemini).
 
-Points Sentinel at a large, noisy issue (long description + a long comment thread of
-off-topic chatter) with ONE real bug requirement buried inside. Asserts the agent
-extracts the actual objective without losing it in the noise or erroring out on size.
+Points Sentinel at a large, noisy issue (long description + a long comment thread)
+with ONE real bug requirement buried in the middle of the discussion. Asserts the
+agent reads the comments and extracts the objective without losing it in the noise.
 
-  # create / refresh the noisy issue, then triage it:
+  # create a fresh noisy issue, then triage it:
   .venv/bin/python scripts/phase5/eval_2_context_overload.py --seed
+
+  # create the fixture without calling Gemini:
+  .venv/bin/python scripts/phase5/eval_2_context_overload.py --seed-only
 
   # reuse an existing noisy issue by iid (no seeding):
   .venv/bin/python scripts/phase5/eval_2_context_overload.py --iid 7
@@ -21,7 +24,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _harness import PROJECT_PATH, check, info, mentions_any, run_capture, section, verdict  # noqa: E402
+from _harness import (  # noqa: E402
+    PROJECT_PATH,
+    check,
+    info,
+    mentions_any,
+    run_capture,
+    section,
+    tool_names,
+    verdict,
+)
 
 import httpx  # noqa: E402
 
@@ -54,13 +66,12 @@ def _proj() -> str:
     return urllib.parse.quote_plus(PROJECT_PATH)
 
 
-async def seed_noisy_issue() -> int:
-    """Create a big noisy issue with the real bug buried mid-description + filler comments."""
+async def seed_noisy_issue() -> dict[str, object]:
+    """Create a noisy issue with the real bug buried in the discussion thread."""
     description = (
-        _NOISE_PARA * 8
-        + "\n\n---\n\n" + REAL_BUG + "\n\n---\n\n"
-        + _NOISE_PARA * 8
-        + "\n\nPlease investigate and fix the real defect described above."
+        _NOISE_PARA * 16
+        + "\n\nThe useful diagnostic update is somewhere in the discussion thread. "
+        "Please identify the single confirmed defect without acting on unrelated chatter."
     )
     async with httpx.AsyncClient(timeout=30.0, headers=_headers()) as client:
         resp = await client.post(
@@ -68,15 +79,24 @@ async def seed_noisy_issue() -> int:
             json={"title": TITLE, "description": description},
         )
         resp.raise_for_status()
-        iid = int(resp.json()["iid"])
-        # Bury the signal further under a long off-topic comment thread.
-        for n in range(1, 21):
-            await client.post(
+        issue = resp.json()
+        iid = int(issue["iid"])
+
+        # The confirmed defect is comment 11 of 21, surrounded by irrelevant noise.
+        comments = [
+            f"Comment {n}: {REAL_BUG if n == 11 else _NOISE_PARA}"
+            for n in range(1, 22)
+        ]
+        for body in comments:
+            note_resp = await client.post(
                 f"{GITLAB_API_URL}/projects/{_proj()}/issues/{iid}/notes",
-                json={"body": f"Comment {n}: {_NOISE_PARA}"},
+                json={"body": body},
             )
-    info(f"seeded noisy issue #{iid} (1 real bug + ~20 noise comments)")
-    return iid
+            note_resp.raise_for_status()
+
+    info(f"seeded noisy issue #{iid} (real bug in comment 11 of 21)")
+    info(f"url: {issue.get('web_url', '')}")
+    return issue
 
 
 async def main() -> int:
@@ -85,10 +105,15 @@ async def main() -> int:
     iid = None
     if "--iid" in sys.argv:
         iid = int(sys.argv[sys.argv.index("--iid") + 1])
-    elif "--seed" in sys.argv:
-        iid = await seed_noisy_issue()
+    elif "--seed" in sys.argv or "--seed-only" in sys.argv:
+        issue = await seed_noisy_issue()
+        iid = int(issue["iid"])
+        if "--seed-only" in sys.argv:
+            print(f"   created issue #{iid}: {issue.get('title', TITLE)}")
+            print(f"   {issue.get('web_url', '')}")
+            return 0
     else:
-        print("   [SKIP] pass --seed to create a noisy issue, or --iid N to reuse one")
+        print("   [SKIP] pass --seed/--seed-only to create an issue, or --iid N to reuse one")
         return verdict("eval_2_context_overload", False) and 1
 
     prompt = (
@@ -99,10 +124,16 @@ async def main() -> int:
     info(f"prompt: {prompt}")
     cap = await run_capture(prompt, session_id="eval-overload")
     info(f"status={cap['status']}")
+    info(f"tools: {tool_names(cap)}")
     info(f"final: {cap['final'][:400]}")
 
     ok = True
     ok &= check("run completed without error/overflow", cap["status"] == "ok", cap.get("error", ""))
+    ok &= check(
+        "read the issue discussion thread",
+        "list_issue_discussions" in tool_names(cap),
+        f"tools: {tool_names(cap)}",
+    )
     hits = [k for k in DETECT_KEYS if k.lower() in cap["final"].lower()]
     ok &= check("extracted the real bug (login / validate_password / empty password)",
                 len(hits) >= 2, f"matched: {hits}")

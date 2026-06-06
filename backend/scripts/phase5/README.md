@@ -10,6 +10,12 @@ cd backend
 All scripts print per-check `[PASS]/[FAIL]` lines and a final verdict, and exit non-zero
 on failure (CI-friendly).
 
+Latest recorded runs:
+- [June 6, 2026 — all Tier 1 tests passed](results/tier1-2026-06-06.md)
+- [June 6, 2026 — all Tier 2 tests passed](results/tier2-2026-06-06.md)
+- [June 6, 2026 — all Tier 3 tests passed](results/tier3-2026-06-06.md)
+- [June 6, 2026 — golden path passed (24.0s)](results/tier4-2026-06-06.md)
+
 ## Prerequisites
 
 | Need | For | How |
@@ -49,10 +55,16 @@ To exercise the streaming UI by hand, point the chat at the mock endpoint or
 .venv/bin/python scripts/phase5/eval_3_iteration_cap.py            # aborts at max_iterations=5
 ```
 
+To create a fresh context-overload fixture without spending Gemini quota, run:
+
+```bash
+.venv/bin/python scripts/phase5/eval_2_context_overload.py --seed-only
+```
+
 | Script | Proves |
 | --- | --- |
 | `eval_1_hallucination.py` | Asked to fix a non-existent file, the agent reports it missing — no fabricated code, no infinite search, no MR. |
-| `eval_2_context_overload.py` | Extracts the one real bug buried in a long, noisy issue + comment thread (`--seed` creates it; `--iid N` reuses one). |
+| `eval_2_context_overload.py` | Reads issue discussions and extracts the one real bug buried in comment 11 of a noisy 21-comment thread (`--seed` creates and runs it; `--seed-only` only creates it; `--iid N` reuses one). |
 | `eval_3_iteration_cap.py` | Under a tightened ceiling of 5, a multi-step request aborts safely with "Maximum reasoning steps reached" (production cap stays 10). |
 
 ---
