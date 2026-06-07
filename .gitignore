@@ -38,6 +38,7 @@ build/
 # === AI assistant scaffolding (do not commit) ===
 CLAUDE.md
 **/CLAUDE.md
+.claude/
 
 # === Local-only docs (keep out of the public submission repo) ===
 SUBMISSION_PITCH.md
