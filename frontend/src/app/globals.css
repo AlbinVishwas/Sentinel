@@ -1,32 +1,30 @@
 @import "tailwindcss";
 
 /*
-  Sentinel design system — dark-only, monochrome, no motion.
-  Palette is a neutral zinc scale; color is reserved for MEANING only
-  (working / success / danger), all low-chroma. Chrome itself is colorless.
-  There are intentionally NO transitions or animations anywhere.
+  Sentinel design system — Apple-system monochrome theme.
+  High contrast black-and-white layout with subtle zinc accents.
+  Typography-first focus utilizing SF Pro Display and JetBrains Mono.
 */
 
 @theme {
-  --color-bg: oklch(0.16 0.004 286);        /* near-black app background */
-  --color-surface: oklch(0.20 0.004 286);   /* panels, message bubbles */
-  --color-surface-2: oklch(0.24 0.004 286); /* hover / inset */
-  --color-border: oklch(0.27 0.004 286);    /* hairline separators */
-  --color-text: oklch(0.92 0.003 286);      /* primary text (not pure white) */
-  --color-muted: oklch(0.62 0.004 286);     /* secondary text, timestamps */
-  --color-faint: oklch(0.46 0.004 286);     /* tertiary / disabled */
+  --color-bg: #000000;                     /* Pure black background */
+  --color-surface: #09090b;                /* Zinc-950 dashboard panels */
+  --color-surface-2: #18181b;              /* Zinc-900 inputs and hover states */
+  --color-border: #1e1e20;                 /* Crisp border divider */
+  --color-text: #ffffff;                   /* White text */
+  --color-muted: #a1a1aa;                  /* Zinc-400 subtext */
+  --color-faint: #52525b;                  /* Zinc-600 tertiary labels */
 
-  /* Semantic accents — desaturated, used only to signal state. */
-  --color-accent: oklch(0.64 0.045 250);    /* agent working / focus */
-  --color-success: oklch(0.70 0.055 150);   /* MR opened */
-  --color-danger: oklch(0.66 0.07 25);      /* guardrail blocked / error */
+  /* Pure monochrome state styling */
+  --color-accent: #ffffff;
+  --color-success: #ffffff;
+  --color-danger: #ffffff;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 }
 
 * {
-  /* Kill the default focus ring flash; we draw our own static ring. */
   outline: none;
 }
 
@@ -40,22 +38,20 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow: hidden;
 }
 
-/* Static, non-animated focus indicator for keyboard users. */
+/* Crisp keyboard focus indicators */
 :focus-visible {
-  box-shadow: 0 0 0 1px var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-text);
   border-radius: 4px;
 }
 
-/* The composer textarea signals focus via its container's focus-within border,
-   so suppress the global ring on it — otherwise it shows a second inner line. */
 textarea:focus-visible {
   box-shadow: none;
 }
 
-/* Inside a fenced code block, neutralize the inline-code chip styling so the
-   <pre> container owns the background/padding (react-markdown nests <pre><code>). */
+/* Reset code blocks for react-markdown inside pre containers */
 .md-body pre code {
   background: transparent;
   padding: 0;
@@ -63,16 +59,39 @@ textarea:focus-visible {
   color: inherit;
 }
 
-/* Minimal, unobtrusive scrollbar that matches the neutral palette. */
+/* Minimal, dark-mode scrollbars matching the monochrome theme */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
 }
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 4px;
+  height: 4px;
 }
 *::-webkit-scrollbar-thumb {
   background: var(--color-border);
-  border-radius: 6px;
+  border-radius: 2px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-faint);
+}
+
+/* SRE Telemetry Dot Pulsing */
+@keyframes statusPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.pulse-indicator {
+  animation: statusPulse 1.5s infinite ease-in-out;
+}
+
+/* Activity Log Terminal Cursor Pulsing */
+@keyframes cursorPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.pulse-cursor {
+  animation: cursorPulse 1.2s infinite;
 }
