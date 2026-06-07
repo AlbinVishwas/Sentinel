@@ -47,39 +47,41 @@ const components: Components = {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-[var(--color-accent)] underline underline-offset-2"
+      className="text-[var(--color-text)] underline underline-offset-4 hover:text-[var(--color-muted)] transition-colors duration-100 font-medium"
     >
       {children}
     </a>
   ),
   code: ({ children }) => (
-    <code className="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[12.5px] text-[var(--color-text)]">
+    <code className="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 font-mono text-[12px] text-[var(--color-text)] border border-[var(--color-border)]">
       {children}
     </code>
   ),
   pre: ({ children }) => (
-    <pre className="my-3 overflow-x-auto rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-3 font-mono text-[12.5px] leading-relaxed text-[var(--color-text)]">
+    <pre className="my-3 overflow-x-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 font-mono text-[12.5px] leading-relaxed text-[var(--color-text)]">
       {children}
     </pre>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="my-2 border-l-2 border-[var(--color-border)] pl-3 text-[var(--color-muted)]">
+    <blockquote className="my-3 border-l-2 border-[var(--color-faint)] bg-[var(--color-surface)] pl-4 pr-3 py-2 text-[var(--color-muted)] rounded-r text-[13px] leading-relaxed">
       {children}
     </blockquote>
   ),
   hr: () => <hr className="my-4 border-[var(--color-border)]" />,
   table: ({ children }) => (
-    <div className="my-3 overflow-x-auto">
-      <table className="w-full border-collapse text-[13px]">{children}</table>
+    <div className="my-3 overflow-x-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <table className="w-full border-collapse text-[12.5px] text-left">{children}</table>
     </div>
   ),
   th: ({ children }) => (
-    <th className="border border-[var(--color-border)] px-2 py-1 text-left font-semibold">
+    <th className="border-b border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-2.5 font-semibold text-[var(--color-text)]">
       {children}
     </th>
   ),
   td: ({ children }) => (
-    <td className="border border-[var(--color-border)] px-2 py-1">{children}</td>
+    <td className="border-b border-[var(--color-border)] last:border-b-0 px-4 py-2.5 text-[var(--color-muted)]">
+      {children}
+    </td>
   ),
 };
 

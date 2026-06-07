@@ -1,5 +1,8 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# Frontend Developer Notes
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+This frontend uses **Next.js App Router** (not the Pages Router).
+
+- All routes live under `src/app/`
+- Server components are the default; mark client components with `"use client"`
+- The API proxy route at `src/app/api/agent/stream/route.ts` forwards SSE to the FastAPI backend
+- Styling uses CSS custom properties defined in `src/app/globals.css` (dark monochrome palette)

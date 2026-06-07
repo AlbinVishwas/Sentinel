@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sentinel — Frontend
 
-## Getting Started
+Next.js (App Router) chat interface for the Sentinel autonomous SRE agent.
 
-First, run the development server:
+## Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | Geist font + custom CSS variables (dark monochrome) |
+| Deployment | Google Cloud Run (standalone output) |
+
+## Local Development
 
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Set the backend URL (copy from backend/.env.example)
+cp .env.local.example .env.local
+# NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+
+# 3. Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). The root path redirects to `/chat`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The frontend proxies agent requests through the Next.js API route at
+`/api/agent/stream` → `${BACKEND_URL}/agent/stream`, so the GitLab PAT
+never reaches the browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Key Files
 
-## Learn More
+| File | Purpose |
+|------|---------|
+| `src/components/chat.tsx` | Main chat UI — SSE streaming, message list, composer |
+| `src/components/agency-log.tsx` | Collapsible real-time tool call timeline |
+| `src/components/markdown.tsx` | GitHub-flavored Markdown renderer for agent replies |
+| `src/app/api/agent/stream/route.ts` | Next.js proxy route → FastAPI SSE stream |
+| `src/lib/types.ts` | Shared TypeScript event/message types |
 
-To learn more about Next.js, take a look at the following resources:
+## Production Build
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build   # outputs a standalone bundle (.next/standalone)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The [Dockerfile](Dockerfile) uses the standalone output for minimal image size.
