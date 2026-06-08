@@ -115,6 +115,14 @@ export function Chat() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [gitlabProject, setGitlabProject] = useState<string>("");
+  const [inputProject, setInputProject] = useState<string>("");
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("gitlab_project") || "";
+    setGitlabProject(saved);
+    setInputProject(saved);
+  }, []);
 
   // Auto-scroll logic to keep latest content in view
   useEffect(() => {
@@ -153,7 +161,11 @@ export function Chat() {
         const res = await fetch("/api/agent/stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: text, session_id: "ui" }),
+          body: JSON.stringify({
+            prompt: text,
+            session_id: "ui",
+            gitlab_project: gitlabProject || undefined,
+          }),
         });
         if (!res.body) throw new Error("no stream");
 
@@ -202,6 +214,41 @@ export function Chat() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg)]">
       <Header />
+
+      {/* Target Project Config Bar */}
+      <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] px-6 py-3 bg-[var(--color-surface)] text-xs">
+        <div className="flex items-center gap-4">
+          <span className="text-[var(--color-faint)] font-mono text-[10px] uppercase tracking-wider shrink-0">Target Repo:</span>
+          <div className="flex items-center rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 focus-within:border-[var(--color-text)] transition-colors">
+            <input
+              type="text"
+              value={inputProject}
+              onChange={(e) => setInputProject(e.target.value)}
+              placeholder="namespace/project-name"
+              className="w-72 bg-transparent font-mono text-[11px] leading-normal text-[var(--color-text)] placeholder:text-[var(--color-faint)] focus:outline-none focus:ring-0 border-none outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const val = inputProject.trim();
+              setGitlabProject(val);
+              if (val) {
+                sessionStorage.setItem("gitlab_project", val);
+              } else {
+                sessionStorage.removeItem("gitlab_project");
+              }
+            }}
+            className="rounded bg-[var(--color-text)] px-3 py-1.5 text-[10px] font-semibold text-[var(--color-bg)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] border border-[var(--color-text)] transition-colors shrink-0"
+          >
+            Set
+          </button>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-[var(--color-muted)]">
+          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${gitlabProject ? "bg-white" : "bg-[var(--color-faint)]"}`}></span>
+          <span>Active: <strong className="text-[var(--color-text)]">{gitlabProject || "Server Default"}</strong></span>
+        </div>
+      </div>
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />

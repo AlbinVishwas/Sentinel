@@ -2,10 +2,11 @@ import json
 import os
 from collections.abc import AsyncIterator
 
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from starlette.responses import StreamingResponse
+from fastapi.responses import StreamingResponse
 
 import asyncio
 
@@ -33,6 +34,7 @@ app.add_middleware(
 class AgentRequest(BaseModel):
     prompt: str = Field(..., min_length=1, description="The user's instruction for Sentinel.")
     session_id: str = Field("default", description="Conversation id (maps to an ADK session).")
+    gitlab_project: str | None = Field(None, description="The GitLab project path override.")
 
 
 @app.get("/health")
@@ -78,7 +80,11 @@ async def agent_info() -> dict[str, object]:
 @app.post("/agent/run")
 async def agent_run(req: AgentRequest) -> dict[str, object]:
     """Run one request to completion and return the final result (non-streaming)."""
-    return await run_agent(req.prompt, session_id=req.session_id)
+    return await run_agent(
+        req.prompt,
+        session_id=req.session_id,
+        gitlab_project=req.gitlab_project,
+    )
 
 
 @app.post("/agent/stream")
@@ -90,7 +96,11 @@ async def agent_stream(req: AgentRequest) -> StreamingResponse:
     """
 
     async def event_source() -> AsyncIterator[bytes]:
-        async for event in stream_agent(req.prompt, session_id=req.session_id):
+        async for event in stream_agent(
+            req.prompt,
+            session_id=req.session_id,
+            gitlab_project=req.gitlab_project,
+        ):
             yield f"data: {json.dumps(event)}\n\n".encode()
         yield b"data: {\"type\": \"done\"}\n\n"
 

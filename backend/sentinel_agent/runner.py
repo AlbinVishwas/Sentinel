@@ -19,7 +19,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
-from .agent import MAX_ITERATIONS, root_agent
+from .agent import MAX_ITERATIONS, make_agent, root_agent
 from .gitlab_health import AUTH_ERROR_MARKERS
 
 APP_NAME = "sentinel"
@@ -54,6 +54,7 @@ async def stream_agent(
     user_id: str = "api",
     session_id: str = "default",
     max_iterations: int = MAX_ITERATIONS,
+    gitlab_project: str | None = None,
 ) -> AsyncIterator[dict[str, object]]:
     """Drive one request through Sentinel, yielding events as they occur.
 
@@ -65,7 +66,12 @@ async def stream_agent(
       {"type": "aborted",    "message": str}  - hit the iteration ceiling (Risk 2)
       {"type": "error",      "message": str}  - unexpected failure
     """
-    runner = _new_runner()
+    agent = make_agent(gitlab_project)
+    runner = Runner(
+        app_name=APP_NAME,
+        agent=agent,
+        session_service=InMemorySessionService(),
+    )
     await runner.session_service.create_session(
         app_name=APP_NAME, user_id=user_id, session_id=session_id
     )
@@ -107,6 +113,7 @@ async def run_agent(
     user_id: str = "api",
     session_id: str = "default",
     max_iterations: int = MAX_ITERATIONS,
+    gitlab_project: str | None = None,
 ) -> dict[str, object]:
     """Run one request through Sentinel under the iteration cap (non-streaming).
 
@@ -118,7 +125,11 @@ async def run_agent(
     tool_calls: list[str] = []
     final_text = ""
     async for ev in stream_agent(
-        prompt, user_id=user_id, session_id=session_id, max_iterations=max_iterations
+        prompt,
+        user_id=user_id,
+        session_id=session_id,
+        max_iterations=max_iterations,
+        gitlab_project=gitlab_project,
     ):
         kind = ev.get("type")
         if kind == "tool_call":
