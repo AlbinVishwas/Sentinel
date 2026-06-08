@@ -9,6 +9,10 @@
 **AI-Powered CI/CD Overwatch and Autonomous SRE for GitLab**  
 *Remedial automation at scale, keeping the developer safely in the loop.*
 
+> **Live demo:** [sentinel-frontend-rnvsnqnyja-uc.a.run.app](https://sentinel-frontend-rnvsnqnyja-uc.a.run.app)  
+> **Backend API:** [sentinel-backend-332685207372.us-central1.run.app](https://sentinel-backend-332685207372.us-central1.run.app/health)  
+> Built for the **Google Cloud Rapid Agent Hackathon — GitLab Track**
+
 ---
 
 ## Overview
@@ -90,7 +94,7 @@ Follow these steps to run Sentinel locally:
    ```bash
    cp .env.local.example .env.local
    ```
-   *Note: Ensure `NEXT_PUBLIC_BACKEND_URL` is pointed to the backend API (`http://localhost:8000`).*
+   *Note: Ensure `BACKEND_URL` is pointed to the backend API (`http://localhost:8000`). This variable is server-side only and is never exposed to the browser.*
 4. Run the Next.js development server:
    ```bash
    npm run dev
