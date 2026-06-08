@@ -3,7 +3,7 @@ import os
 from collections.abc import AsyncIterator
 
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 import asyncio
 
 from sentinel_agent.agent import MAX_ITERATIONS, READ_TOOLS, WRITE_TOOLS, root_agent
-from sentinel_agent.gitlab_health import check_gitlab_auth
+from sentinel_agent.gitlab_health import check_gitlab_auth, check_project_exists
 from sentinel_agent.runner import run_agent, stream_agent
 
 app = FastAPI(
@@ -75,6 +75,12 @@ async def agent_info() -> dict[str, object]:
             "Risk 3: untrusted issue/MR text wrapped in <UNTRUSTED_REPOSITORY_DATA> (after_tool_callback)",
         ],
     }
+
+
+@app.get("/gitlab/project")
+async def validate_project(path: str = Query(..., description="GitLab project path (namespace/project-name).")) -> dict[str, object]:
+    """Check whether a GitLab project exists and is accessible with the configured PAT."""
+    return await check_project_exists(path)
 
 
 @app.post("/agent/run")

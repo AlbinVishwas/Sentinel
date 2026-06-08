@@ -85,3 +85,34 @@ async def check_gitlab_auth(token: str | None = None, *, timeout: float = 10.0) 
         "username": username,
         "message": f"GitLab token valid (authenticated as '{username}')." if username else "GitLab token valid.",
     }
+
+
+async def check_project_exists(project_path: str, *, timeout: float = 8.0) -> dict[str, object]:
+    """Check whether a GitLab project (namespace/project-name) is accessible with the configured PAT.
+
+    Returns a dict with:
+      - ok: True   → project found; includes display name
+      - ok: False  → reason is "not_found", "unauthorized", or "unreachable"
+    Never raises.
+    """
+    pat = os.environ.get("GITLAB_PERSONAL_ACCESS_TOKEN", "")
+    encoded = project_path.replace("/", "%2F")
+    url = f"{GITLAB_API_URL}/projects/{encoded}"
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(url, headers={"PRIVATE-TOKEN": pat} if pat else {})
+    except httpx.HTTPError:
+        return {"ok": False, "reason": "unreachable"}
+
+    if resp.status_code == 200:
+        name = project_path
+        try:
+            name = resp.json().get("name_with_namespace", project_path)
+        except Exception:
+            pass
+        return {"ok": True, "name": name}
+    if resp.status_code == 404:
+        return {"ok": False, "reason": "not_found"}
+    if resp.status_code in (401, 403):
+        return {"ok": False, "reason": "unauthorized"}
+    return {"ok": False, "reason": f"http_{resp.status_code}"}

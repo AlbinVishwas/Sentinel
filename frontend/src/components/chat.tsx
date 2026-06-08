@@ -117,11 +117,14 @@ export function Chat() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [gitlabProject, setGitlabProject] = useState<string>("");
   const [inputProject, setInputProject] = useState<string>("");
+  const [projectCheck, setProjectCheck] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
+  const [projectError, setProjectError] = useState<string>("");
 
   useEffect(() => {
     const saved = sessionStorage.getItem("gitlab_project") || "";
     setGitlabProject(saved);
     setInputProject(saved);
+    if (saved) setProjectCheck("valid");
   }, []);
 
   // Auto-scroll logic to keep latest content in view
@@ -223,30 +226,63 @@ export function Chat() {
             <input
               type="text"
               value={inputProject}
-              onChange={(e) => setInputProject(e.target.value)}
+              onChange={(e) => {
+                setInputProject(e.target.value);
+                if (projectCheck !== "idle") setProjectCheck("idle");
+              }}
               placeholder="namespace/project-name"
               className="w-72 bg-transparent font-mono text-[11px] leading-normal text-[var(--color-text)] placeholder:text-[var(--color-faint)] focus:outline-none focus:ring-0 border-none outline-none"
             />
           </div>
           <button
             type="button"
-            onClick={() => {
+            disabled={projectCheck === "checking"}
+            onClick={async () => {
               const val = inputProject.trim();
-              setGitlabProject(val);
-              if (val) {
-                sessionStorage.setItem("gitlab_project", val);
-              } else {
+              if (!val) {
+                setGitlabProject("");
+                setProjectCheck("idle");
+                setProjectError("");
+                sessionStorage.removeItem("gitlab_project");
+                return;
+              }
+              setProjectCheck("checking");
+              setProjectError("");
+              try {
+                const res = await fetch(`/api/gitlab/project?path=${encodeURIComponent(val)}`);
+                const data = await res.json() as { ok: boolean; reason?: string; name?: string };
+                if (data.ok) {
+                  setGitlabProject(val);
+                  setProjectCheck("valid");
+                  sessionStorage.setItem("gitlab_project", val);
+                } else {
+                  setGitlabProject("");
+                  setProjectCheck("invalid");
+                  setProjectError(data.reason === "not_found" ? "Project not found" : data.reason === "unauthorized" ? "Access denied" : "Could not reach GitLab");
+                  sessionStorage.removeItem("gitlab_project");
+                }
+              } catch {
+                setGitlabProject("");
+                setProjectCheck("invalid");
+                setProjectError("Could not reach GitLab");
                 sessionStorage.removeItem("gitlab_project");
               }
             }}
-            className="rounded bg-[var(--color-text)] px-3 py-1.5 text-[10px] font-semibold text-[var(--color-bg)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] border border-[var(--color-text)] transition-colors shrink-0"
+            className="rounded bg-[var(--color-text)] px-3 py-1.5 text-[10px] font-semibold text-[var(--color-bg)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] border border-[var(--color-text)] transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Set
+            {projectCheck === "checking" ? "Checking…" : "Set"}
           </button>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-[var(--color-muted)]">
-          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${gitlabProject ? "bg-white" : "bg-[var(--color-faint)]"}`}></span>
-          <span>Active: <strong className="text-[var(--color-text)]">{gitlabProject || "Server Default"}</strong></span>
+          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+            projectCheck === "valid" ? "bg-white" :
+            projectCheck === "checking" ? "bg-[var(--color-faint)] pulse-indicator" :
+            "bg-[var(--color-faint)]"
+          }`}></span>
+          {projectCheck === "invalid"
+            ? <span className="text-[var(--color-muted)]">{projectError}</span>
+            : <span>Active: <strong className="text-[var(--color-text)]">{gitlabProject || "Server Default"}</strong></span>
+          }
         </div>
       </div>
 
