@@ -19,7 +19,7 @@ npm install
 
 # 2. Set the backend URL (copy from backend/.env.example)
 cp .env.local.example .env.local
-# NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+# BACKEND_URL=http://localhost:8000
 
 # 3. Start the dev server
 npm run dev
