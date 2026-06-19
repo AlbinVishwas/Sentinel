@@ -7,6 +7,12 @@ import type { AgencyEntry, AgentEvent } from "@/lib/types";
 
 type Status = "idle" | "working" | "done" | "aborted" | "error";
 
+type GitlabUser = { username: string; name: string; avatar_url: string };
+type Auth =
+  | { state: "loading" }
+  | { state: "out" }
+  | { state: "in"; user: GitlabUser };
+
 type Turn =
   | { role: "user"; id: string; text: string }
   | { role: "agent"; id: string; agency: AgencyEntry[]; text: string; status: Status };
@@ -111,6 +117,7 @@ function Sidebar() {
 }
 
 export function Chat() {
+  const [auth, setAuth] = useState<Auth>({ state: "loading" });
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -121,10 +128,29 @@ export function Chat() {
   const [projectError, setProjectError] = useState<string>("");
 
   useEffect(() => {
+    // sessionStorage is client-only; seed state post-mount to avoid an SSR hydration mismatch.
     const saved = sessionStorage.getItem("gitlab_project") || "";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGitlabProject(saved);
     setInputProject(saved);
     if (saved) setProjectCheck("valid");
+  }, []);
+
+  // Resolve auth state on mount: ask our own /api/auth/me (reads the httpOnly cookie).
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((d: { user: GitlabUser }) => alive && setAuth({ state: "in", user: d.user }))
+      .catch(() => alive && setAuth({ state: "out" }));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const logout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    setAuth({ state: "out" });
   }, []);
 
   // Auto-scroll logic to keep latest content in view
@@ -214,9 +240,13 @@ export function Chat() {
     }
   };
 
+  if (auth.state !== "in") {
+    return <LoginGate loading={auth.state === "loading"} />;
+  }
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg)]">
-      <Header />
+      <Header user={auth.user} onLogout={logout} />
 
       {/* Target Project Config Bar */}
       <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] px-6 py-3 bg-[var(--color-surface)] text-xs">
@@ -386,7 +416,7 @@ function applyEvent(
   }
 }
 
-function Header() {
+function Header({ user, onLogout }: { user: GitlabUser; onLogout: () => void }) {
   return (
     <header className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4 py-3 bg-[var(--color-bg)]">
       <div className="flex items-center gap-2">
@@ -405,12 +435,61 @@ function Header() {
           <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-text)] pulse-indicator"></span>
           <span>Google Cloud: <strong className="text-[var(--color-text)] font-medium">Live</strong></span>
         </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-muted)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-text)]"></span>
-          <span>GitLab: <strong className="text-[var(--color-text)] font-medium">Connected</strong></span>
+        <div className="flex items-center gap-2 text-[11px] text-[var(--color-muted)]">
+          {user.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatar_url} alt="" className="h-4 w-4 rounded-full" />
+          ) : (
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-text)]"></span>
+          )}
+          <span>GitLab: <strong className="text-[var(--color-text)] font-medium">@{user.username}</strong></span>
         </div>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="rounded border border-[var(--color-border)] px-2 py-1 text-[10px] font-medium text-[var(--color-muted)] hover:border-[var(--color-text)] hover:text-[var(--color-text)] transition-colors"
+        >
+          Disconnect
+        </button>
       </div>
     </header>
+  );
+}
+
+function LoginGate({ loading }: { loading: boolean }) {
+  return (
+    <div className="flex h-screen flex-col items-center justify-center bg-[var(--color-bg)] px-4">
+      <div className="flex flex-col items-center text-center">
+        <div className="relative flex items-center justify-center gap-3 mb-4" style={{ left: "-32px" }}>
+          <div className="h-12 w-12 text-[var(--color-text)] shrink-0 flex items-center justify-center">
+            <LogoSVG />
+          </div>
+          <h1
+            className="font-sans text-5xl font-semibold tracking-tight leading-none text-[var(--color-text)]"
+            style={{ letterSpacing: "-0.035em" }}
+          >
+            Sentinel
+          </h1>
+        </div>
+        <p className="text-[13.5px] leading-relaxed text-[var(--color-muted)] max-w-[420px] mb-7">
+          Connect your GitLab account to let Sentinel investigate and remediate issues on
+          your behalf — scoped to your own permissions.
+        </p>
+        {loading ? (
+          <div className="font-mono text-xs text-[var(--color-muted)] flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-text)] pulse-indicator"></span>
+            Checking session…
+          </div>
+        ) : (
+          <a
+            href="/api/auth/login"
+            className="rounded bg-[var(--color-text)] px-5 py-2.5 text-xs font-semibold text-[var(--color-bg)] border border-[var(--color-text)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors"
+          >
+            Connect GitLab
+          </a>
+        )}
+      </div>
+    </div>
   );
 }
 

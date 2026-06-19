@@ -19,14 +19,14 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
-from .agent import MAX_ITERATIONS, make_agent, root_agent
+from .agent import MAX_ITERATIONS, make_agent
 from .gitlab_health import AUTH_ERROR_MARKERS
 
 APP_NAME = "sentinel"
 ABORT_MESSAGE = "Task aborted: Maximum reasoning steps reached."
 AUTH_ERROR_MESSAGE = (
-    "GitLab authentication failed: the access token is missing, invalid, or expired. "
-    "Check GITLAB_PERSONAL_ACCESS_TOKEN."
+    "GitLab authentication failed: your GitLab connection is missing, invalid, or "
+    "expired. Please sign out and reconnect GitLab."
 )
 
 
@@ -40,25 +40,21 @@ def _is_auth_error(exc: BaseException) -> bool:
     return any(marker in text for marker in AUTH_ERROR_MARKERS)
 
 
-def _new_runner() -> Runner:
-    return Runner(
-        app_name=APP_NAME,
-        agent=root_agent,
-        session_service=InMemorySessionService(),
-    )
-
-
 async def stream_agent(
     prompt: str,
     *,
-    user_id: str = "api",
+    gitlab_token: str,
+    user_id: str,
     session_id: str = "default",
     max_iterations: int = MAX_ITERATIONS,
     gitlab_project: str | None = None,
 ) -> AsyncIterator[dict[str, object]]:
     """Drive one request through Sentinel, yielding events as they occur.
 
-    Event shapes (each a plain dict, ready to JSON-encode for SSE):
+    `gitlab_token` is the requesting user's GitLab OAuth access token (from
+    `store.get_valid_access_token`); `user_id` is their GitLab user id, used to
+    scope the ADK session. Event shapes (each a plain dict, ready to JSON-encode
+    for SSE):
       {"type": "reasoning", "text": str}      - the model's intermediate prose
       {"type": "tool_call",  "name": str, "args": dict}
       {"type": "tool_result","name": str}     - a tool returned (result omitted; may be large/untrusted)
@@ -66,7 +62,7 @@ async def stream_agent(
       {"type": "aborted",    "message": str}  - hit the iteration ceiling (Risk 2)
       {"type": "error",      "message": str}  - unexpected failure
     """
-    agent = make_agent(gitlab_project)
+    agent = make_agent(gitlab_token, gitlab_project)
     runner = Runner(
         app_name=APP_NAME,
         agent=agent,
@@ -110,7 +106,8 @@ async def stream_agent(
 async def run_agent(
     prompt: str,
     *,
-    user_id: str = "api",
+    gitlab_token: str,
+    user_id: str,
     session_id: str = "default",
     max_iterations: int = MAX_ITERATIONS,
     gitlab_project: str | None = None,
@@ -126,6 +123,7 @@ async def run_agent(
     final_text = ""
     async for ev in stream_agent(
         prompt,
+        gitlab_token=gitlab_token,
         user_id=user_id,
         session_id=session_id,
         max_iterations=max_iterations,

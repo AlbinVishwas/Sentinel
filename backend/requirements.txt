@@ -8,3 +8,8 @@ httpx
 # Phase 2 — Agent orchestration
 google-adk
 mcp          # MCP client (StdioServerParameters etc.); not bundled by google-adk 2.1.0
+
+# OAuth — per-user GitLab identity
+google-cloud-firestore
+pyjwt
+cryptography

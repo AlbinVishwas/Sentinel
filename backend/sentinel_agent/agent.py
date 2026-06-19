@@ -96,12 +96,15 @@ _NPX = shutil.which("npx") or "npx"
 
 
 def make_gitlab_toolset(
-    tool_filter: list[str] | None = ALL_TOOLS, *, read_only: bool = False
+    tool_filter: list[str] | None = ALL_TOOLS, *, token: str, read_only: bool = False
 ) -> MCPToolset:
-    """Build a GitLab MCP toolset over stdio.
+    """Build a GitLab MCP toolset over stdio, authenticated as a specific user.
 
     tool_filter=None exposes every tool the server offers (discovery only).
     read_only=True runs the server with GITLAB_READ_ONLY_MODE=true (Phase 2 mode).
+    `token` is that user's GitLab OAuth access token (resolved via
+    `store.get_valid_access_token`) — every MCP call this toolset makes acts
+    as that user, scoped to their own GitLab permissions.
     """
     return MCPToolset(
         connection_params=StdioConnectionParams(
@@ -110,9 +113,7 @@ def make_gitlab_toolset(
                 args=["-y", "@zereight/mcp-gitlab"],
                 env={
                     **os.environ,  # keep PATH etc. so `npx` resolves inside the child
-                    "GITLAB_PERSONAL_ACCESS_TOKEN": os.environ.get(
-                        "GITLAB_PERSONAL_ACCESS_TOKEN", ""
-                    ),
+                    "GITLAB_PERSONAL_ACCESS_TOKEN": token,
                     "GITLAB_API_URL": GITLAB_API_URL,
                     "GITLAB_READ_ONLY_MODE": "true" if read_only else "false",
                 },
@@ -183,10 +184,6 @@ def wrap_untrusted_gitlab_text(tool, args, tool_context, tool_response):
     }
 
 
-# --- Agent -----------------------------------------------------------------
-gitlab_toolset = make_gitlab_toolset(tool_filter=ALL_TOOLS, read_only=False)
-
-
 def build_system_instruction(project: str | None = None) -> str:
     proj = project.strip() if project else GITLAB_DEFAULT_PROJECT
     project_context = (
@@ -239,29 +236,23 @@ def build_system_instruction(project: str | None = None) -> str:
     )
 
 
-SYSTEM_INSTRUCTION = build_system_instruction()
-
-root_agent = LlmAgent(
-    model=SENTINEL_MODEL,
-    name="sentinel",
-    description="AI-powered CI/CD overwatch and SRE agent for GitLab (guardrailed read-write).",
-    instruction=SYSTEM_INSTRUCTION,
-    tools=[gitlab_toolset],
-    before_tool_callback=block_protected_branch_writes,
-    after_tool_callback=wrap_untrusted_gitlab_text,
-)
+AGENT_NAME = "sentinel"
+AGENT_DESCRIPTION = "AI-powered CI/CD overwatch and SRE agent for GitLab (guardrailed read-write)."
 
 
-def make_agent(project: str | None = None) -> LlmAgent:
-    if not project or project.strip() == GITLAB_DEFAULT_PROJECT:
-        return root_agent
+def make_agent(token: str, project: str | None = None) -> LlmAgent:
+    """Build a fresh agent + MCP toolset authenticated as `token`'s GitLab user.
 
+    Each call spawns its own `@zereight/mcp-gitlab` process so the agent acts
+    with the requesting user's own GitLab permissions — there is no shared
+    toolset to reuse once credentials are per-user.
+    """
     return LlmAgent(
         model=SENTINEL_MODEL,
-        name="sentinel",
-        description="AI-powered CI/CD overwatch and SRE agent for GitLab (guardrailed read-write).",
+        name=AGENT_NAME,
+        description=AGENT_DESCRIPTION,
         instruction=build_system_instruction(project),
-        tools=[gitlab_toolset],  # Reuse global toolset to save spawn/npx overhead
+        tools=[make_gitlab_toolset(tool_filter=ALL_TOOLS, token=token, read_only=False)],
         before_tool_callback=block_protected_branch_writes,
         after_tool_callback=wrap_untrusted_gitlab_text,
     )

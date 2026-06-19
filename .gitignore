@@ -40,6 +40,8 @@ build/
 CLAUDE.md
 **/CLAUDE.md
 .claude/
+.agents/
+skills-lock.json
 
 # === Local-only docs (keep out of the public submission repo) ===
 SUBMISSION_PITCH.md
@@ -47,6 +49,7 @@ HACKATHON_ALIGNMENT.md
 PROJECT_PLAN.md
 CHECKLIST.md
 GITLAB_INTEGRATION_GUIDE.md
+VIDEO_RECORDING_GUIDE.md
 
 # === Temporary UI Previews ===
 sentinel_ui_preview.html

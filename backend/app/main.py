@@ -3,16 +3,20 @@ import os
 from collections.abc import AsyncIterator
 
 
-from fastapi import FastAPI, Query
+import httpx
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
 
 import asyncio
 
-from sentinel_agent.agent import MAX_ITERATIONS, READ_TOOLS, WRITE_TOOLS, root_agent
+from sentinel_agent import oauth, session, store
+from sentinel_agent.agent import AGENT_NAME, MAX_ITERATIONS, READ_TOOLS, SENTINEL_MODEL, WRITE_TOOLS
 from sentinel_agent.gitlab_health import check_gitlab_auth, check_project_exists
 from sentinel_agent.runner import run_agent, stream_agent
+
+from .auth import AuthedUser, require_gitlab_token, require_user
 
 app = FastAPI(
     title="Sentinel API",
@@ -37,6 +41,66 @@ class AgentRequest(BaseModel):
     gitlab_project: str | None = Field(None, description="The GitLab project path override.")
 
 
+class CallbackRequest(BaseModel):
+    code: str = Field(..., min_length=1, description="GitLab authorization code from the OAuth redirect.")
+    state: str = Field(..., min_length=1, description="Opaque state JWT echoed back by GitLab (CSRF check).")
+
+
+# --- Auth (GitLab OAuth 2.0) ----------------------------------------------
+# The frontend owns the browser-facing session cookie; this API only mints and
+# verifies the signed JWTs that go inside it. See app/auth.py for the verify side.
+@app.get("/auth/login")
+async def auth_login() -> dict[str, str]:
+    """Begin the OAuth dance: return the GitLab authorize URL and its CSRF state.
+
+    The frontend redirects the browser to `authorize_url` and stashes `state` in a
+    short-lived httpOnly cookie, so the value echoed back at /auth/callback can be
+    matched against the browser that started the flow.
+    """
+    state = session.create_state_jwt()
+    return {"authorize_url": oauth.build_authorize_url(state), "state": state}
+
+
+@app.post("/auth/callback")
+async def auth_callback(req: CallbackRequest) -> dict[str, object]:
+    """Complete OAuth: validate state, exchange the code, persist the user, mint a session.
+
+    Returns `{session_token, expires_in, user}`. The frontend sets `session_token`
+    as its httpOnly session cookie and forwards it as a bearer on later calls.
+    """
+    if not session.verify_state_jwt(req.state):
+        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state.")
+
+    try:
+        tokens = await oauth.exchange_code_for_token(req.code)
+        profile = await oauth.fetch_gitlab_user(str(tokens["access_token"]))
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="GitLab rejected the authorization code.")
+
+    await store.upsert_user(profile, tokens)
+
+    user_id = str(profile["id"])
+    session_token = session.create_session_jwt(user_id, str(profile.get("username", "")))
+    return {
+        "session_token": session_token,
+        "expires_in": session.SESSION_TTL_SECONDS,
+        "user": {
+            "username": profile.get("username", ""),
+            "name": profile.get("name", ""),
+            "avatar_url": profile.get("avatar_url", ""),
+        },
+    }
+
+
+@app.get("/auth/me")
+async def auth_me(user: AuthedUser = Depends(require_user)) -> dict[str, object]:
+    """The signed-in user's public profile (no tokens). Backs the frontend's auth gate."""
+    profile = await store.get_user(user.gitlab_user_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return profile
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     """Liveness probe used by Cloud Run and local smoke tests."""
@@ -44,13 +108,16 @@ async def health() -> dict[str, str]:
 
 
 @app.get("/health/gitlab")
-async def health_gitlab() -> dict[str, object]:
-    """Preflight the GitLab credential (Phase 5 — Secret Manager check).
+async def health_gitlab(user: AuthedUser = Depends(require_user)) -> dict[str, object]:
+    """Preflight the signed-in user's GitLab credential (Phase 5 — Secret Manager check).
 
-    AI-free: pings `GET /user` with the configured PAT so a missing/expired token
-    is caught as a clear 401 here instead of failing opaquely mid-agent-run.
+    AI-free: resolves the caller's OAuth access token and pings `GET /user` so a
+    missing/expired connection is reported as a clear verdict here instead of
+    failing opaquely mid-agent-run. Returns a structured status (never 401) so the
+    UI can prompt a reconnect rather than treating it as a hard error.
     """
-    return await check_gitlab_auth()
+    token = await store.get_valid_access_token(user.gitlab_user_id)
+    return await check_gitlab_auth(token)
 
 
 @app.get("/agent/info")
@@ -61,8 +128,8 @@ async def agent_info() -> dict[str, object]:
     confirming the ADK agent + Gemini model loaded inside the FastAPI process.
     """
     return {
-        "name": root_agent.name,
-        "model": root_agent.model,
+        "name": AGENT_NAME,
+        "model": SENTINEL_MODEL,
         "mode": "read-write (guardrailed)",
         "max_iterations": MAX_ITERATIONS,
         "read_tools": READ_TOOLS,
@@ -78,32 +145,48 @@ async def agent_info() -> dict[str, object]:
 
 
 @app.get("/gitlab/project")
-async def validate_project(path: str = Query(..., description="GitLab project path (namespace/project-name).")) -> dict[str, object]:
-    """Check whether a GitLab project exists and is accessible with the configured PAT."""
-    return await check_project_exists(path)
+async def validate_project(
+    path: str = Query(..., description="GitLab project path (namespace/project-name)."),
+    user: AuthedUser = Depends(require_user),
+) -> dict[str, object]:
+    """Check whether a GitLab project is accessible to the signed-in user."""
+    token = await store.get_valid_access_token(user.gitlab_user_id)
+    return await check_project_exists(path, token)
 
 
 @app.post("/agent/run")
-async def agent_run(req: AgentRequest) -> dict[str, object]:
+async def agent_run(
+    req: AgentRequest,
+    auth: tuple[AuthedUser, str] = Depends(require_gitlab_token),
+) -> dict[str, object]:
     """Run one request to completion and return the final result (non-streaming)."""
+    user, token = auth
     return await run_agent(
         req.prompt,
+        gitlab_token=token,
+        user_id=user.gitlab_user_id,
         session_id=req.session_id,
         gitlab_project=req.gitlab_project,
     )
 
 
 @app.post("/agent/stream")
-async def agent_stream(req: AgentRequest) -> StreamingResponse:
+async def agent_stream(
+    req: AgentRequest,
+    auth: tuple[AuthedUser, str] = Depends(require_gitlab_token),
+) -> StreamingResponse:
     """Stream the agent's steps as Server-Sent Events.
 
     Each SSE `data:` line is one JSON event from `stream_agent` (reasoning, tool_call,
     tool_result, final, aborted, error), letting the UI render agency in real time.
     """
+    user, token = auth
 
     async def event_source() -> AsyncIterator[bytes]:
         async for event in stream_agent(
             req.prompt,
+            gitlab_token=token,
+            user_id=user.gitlab_user_id,
             session_id=req.session_id,
             gitlab_project=req.gitlab_project,
         ):
